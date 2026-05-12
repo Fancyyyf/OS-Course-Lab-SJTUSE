@@ -14,7 +14,7 @@ This repository is the lab repository for Introduction to Computer Systems (ICS/
 ### 0. DataLab
 Lab说明：熟悉位操作的小练习，具体使用说明见文件夹内的Readme以及代码注释
 
-### 1. SimLab (一个简易的Y86 CPU模拟器)
+### 1. SimLab
 Lab说明文档：https://ipads.feishu.cn/wiki/Ca0Nwh6L6ifXbfk86VfcWK6FnSd
 
 ### 2. AsmLab
@@ -31,3 +31,6 @@ Lab说明文档: https://ipads.feishu.cn/wiki/Dl2rwMtxCip2tYkOGVNcItqVnVf
 
 ### 6. LLMLab
 Lab说明文档: https://ipads.feishu.cn/wiki/FHNaw2DFaiwL2skOLMtciTGPnDe
+
+### 7. AgentLab
+Lab说明见AgentLab/docs目录
