@@ -39,6 +39,8 @@ def build_runtime(
             skill_docs=skill_loader.descriptions(),
             memory_docs=memory_loader.descriptions(),
             name="subagent",
+            skill_loader=skill_loader,
+            memory_loader=memory_loader,
         )
         return subagent.run(task)
 
@@ -56,6 +58,8 @@ def build_runtime(
         skill_docs=skill_loader.descriptions(),
         memory_docs=memory_loader.descriptions(),
         name="main",
+        skill_loader=skill_loader,
+        memory_loader=memory_loader,
     )
     return AgentRuntime(
         agent=agent,

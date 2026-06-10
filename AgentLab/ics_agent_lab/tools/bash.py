@@ -8,9 +8,37 @@ from .base import Tool, Workspace, json_result
 def make_tool(workspace: Workspace) -> Tool:
 
     def handler(arguments: dict[str, Any]) -> str:
-        # TODO: run the command inside the workspace with a timeout and return
-        # structured stdout/stderr information. Add at least a small safety filter.
-        return json_result(ok=False, error="TODO: implement bash")
+        import subprocess
+
+        command = arguments["command"]
+
+        # Block dangerous commands
+        unsafe_keywords = ["rm -rf /", "mkfs", "dd if="]
+        for kw in unsafe_keywords:
+            if kw in command:
+                return json_result(
+                    ok=False,
+                    error=f"Command is blocked for safety reasons (contains '{kw}').",
+                )
+
+        try:
+            res = subprocess.run(
+                command,
+                shell=True,
+                cwd=workspace.resolved_root,
+                capture_output=True,
+                text=True,
+                timeout=30.0,
+            )
+            return json_result(
+                ok=True, stdout=res.stdout, stderr=res.stderr, exit_code=res.returncode
+            )
+        except subprocess.TimeoutExpired:
+            return json_result(
+                ok=False, error="Command execution timed out after 30 seconds."
+            )
+        except Exception as e:
+            return json_result(ok=False, error=str(e))
 
     return Tool(
         name="bash",

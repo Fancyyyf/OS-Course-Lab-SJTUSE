@@ -11,8 +11,12 @@ def make_tool(subagent_runner: Callable[[str], str] | None) -> Tool:
         if subagent_runner is None:
             return json_result(ok=False, error="Subagent is not configured.")
 
-        # TODO: hand the bounded task text to the subagent runner and return its result.
-        return json_result(ok=False, error="TODO: implement ask_subagent")
+        task = arguments["task"]
+        try:
+            result = subagent_runner(task)
+            return json_result(ok=True, content=result)
+        except Exception as e:
+            return json_result(ok=False, error=str(e))
 
     return Tool(
         name="ask_subagent",

@@ -21,6 +21,17 @@ class Tool:
             f"  arguments schema: {json.dumps(self.schema, ensure_ascii=False)}"
         )
 
+    def docs_compact(self) -> str:
+        props = self.schema.get("properties", {})
+        req = self.schema.get("required", [])
+        arg_strs = []
+        for name, info in props.items():
+            t = info.get("type", "any")
+            opt = "" if name in req else "?"
+            arg_strs.append(f"{name}{opt}: {t}")
+        args_part = ", ".join(arg_strs)
+        return f"- {self.name}({args_part}): {self.description}"
+
 
 @dataclass(frozen=True)
 class Workspace:
@@ -51,7 +62,9 @@ class ToolRegistry:
             raise ValueError(f"Duplicate tool name: {tool.name}")
         self._tools[tool.name] = tool
 
-    def docs(self) -> str:
+    def docs(self, compact: bool = True) -> str:
+        if compact:
+            return "\n".join(tool.docs_compact() for tool in self._tools.values())
         return "\n".join(tool.docs() for tool in self._tools.values())
 
     def run(self, name: str, arguments: dict[str, Any]) -> str:

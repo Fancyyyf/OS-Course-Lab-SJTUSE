@@ -12,8 +12,11 @@ def make_tool(memory_loader: MemoryLoader | None) -> Tool:
         if memory_loader is None:
             return json_result(ok=False, error="Memory loader is not configured.")
 
-        # TODO: read memory by key
-        return json_result(ok=False, key=None, content="Not implemented yet.")
+        key = arguments["key"]
+        content = memory_loader.content(key)
+        if content.startswith("Error:"):
+            return json_result(ok=False, error=content)
+        return json_result(ok=True, content=content)
 
     return Tool(
         name="read_memory",

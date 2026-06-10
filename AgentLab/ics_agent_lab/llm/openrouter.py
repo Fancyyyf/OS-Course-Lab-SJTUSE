@@ -64,13 +64,37 @@ class OpenRouterChatTransport(LLMTransport):
         if self.seed is not None:
             request["seed"] = self.seed
 
-        try:
-            response = client.chat.completions.create(**request)
-        except APIStatusError as error:
-            if error.status_code != 404 or self.model == self.fallback_model:
+        import time
+
+        from openai import APIConnectionError, APITimeoutError
+
+        max_retries = 3
+        backoff = 2.0
+
+        for attempt in range(max_retries + 1):
+            try:
+                response = client.chat.completions.create(**request)
+                break
+            except APIStatusError as error:
+                if (
+                    error.status_code in (429, 500, 502, 503, 504)
+                    and attempt < max_retries
+                ):
+                    time.sleep(backoff * (2**attempt))
+                    continue
+                if error.status_code == 404 and self.model != self.fallback_model:
+                    request["model"] = self.fallback_model
+                    try:
+                        response = client.chat.completions.create(**request)
+                        break
+                    except Exception:
+                        raise
                 raise
-            request["model"] = self.fallback_model
-            response = client.chat.completions.create(**request)
+            except (APITimeoutError, APIConnectionError) as error:
+                if attempt < max_retries:
+                    time.sleep(backoff * (2**attempt))
+                    continue
+                raise
 
         content = response.choices[0].message.content
         self.last_usage = usage_to_dict(getattr(response, "usage", None))

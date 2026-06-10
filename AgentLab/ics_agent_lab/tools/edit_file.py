@@ -8,9 +8,23 @@ from .base import Tool, Workspace, json_result
 def make_tool(workspace: Workspace) -> Tool:
 
     def handler(arguments: dict[str, Any]) -> str:
-        # TODO: resolve the path, replace one exact old_text match with new_text,
-        # and avoid rewriting unrelated parts of the file.
-        return json_result(ok=False, error="TODO: implement edit_file")
+        path_str = arguments["path"]
+        old_text = arguments["old_text"]
+        new_text = arguments["new_text"]
+        try:
+            path = workspace.resolve(path_str)
+            if not path.is_file():
+                return json_result(ok=False, error=f"File not found: {path_str}")
+            content = path.read_text(encoding="utf-8")
+            if old_text not in content:
+                return json_result(ok=False, error=f"old_text not found in {path_str}")
+            new_content = content.replace(old_text, new_text, 1)
+            path.write_text(new_content, encoding="utf-8")
+            return json_result(
+                ok=True, message=f"Successfully replaced text in {path_str}."
+            )
+        except Exception as e:
+            return json_result(ok=False, error=str(e))
 
     return Tool(
         name="edit_file",
