@@ -25,24 +25,23 @@ class ManualJsonProtocol:
     def build_system_prompt(
         self,
         tool_docs: str,
-        skill_docs: str = "(no skills available)",
-        memory_docs: str = "(no memory available)",
+        skill_docs: str = "",
+        memory_docs: str = "",
     ) -> str:
         return (
-            "You are a powerful agentic AI coding assistant.\n"
-            "Communicate only via raw JSON. No markdown wrapping (```json), introduction, or conversational text.\n\n"
-            "=== PROTOCOL SCHEMAS ===\n"
-            '1. Tool Call: {"type": "tool_call", "name": "<name>", "arguments": {<args>}}\n'
-            '2. Final Answer: {"type": "final", "content": "<your_response>"}\n\n'
-            "=== AVAILABLE TOOLS ===\n"
+            "You are a coding assistant. Communicate ONLY in raw JSON. No markdown wrappers/intro/chat.\n\n"
+            "=== SCHEMAS ===\n"
+            '1. Tool Call: {"type":"tool_call","name":"<name>","arguments":{<args>}}\n'
+            '2. Final Answer: {"type":"final","content":"<your_response>"}\n\n'
+            "=== TOOLS ===\n"
             f"{tool_docs}\n\n"
-            "=== AVAILABLE SKILLS ===\n"
-            "Check and load using `load_skill` before using domain logic:\n"
+            "=== SKILLS ===\n"
+            "Load via `load_skill` before using logic:\n"
             f"{skill_docs}\n\n"
-            "=== AVAILABLE MEMORIES ===\n"
-            "Recall/persist preferences or facts using `read_memory`/`save_memory`:\n"
+            "=== MEMORY ===\n"
+            "Read/write via `read_memory`/`save_memory`:\n"
             f"{memory_docs}\n\n"
-            "Remember: Output exactly one JSON object. No other text."
+            "Remember: Minimize steps. Output exactly one JSON. When done, output 'final' immediately. No explanation."
         )
 
     def parse(self, text: str) -> ParsedMessage | ParseError:
@@ -127,9 +126,4 @@ class ManualJsonProtocol:
                     )
 
     def repair_prompt(self, bad_text: str, reason: str) -> str:
-        return (
-            "Your previous response was invalid for the JSON protocol.\n"
-            f"Reason: {reason}\n\n"
-            "Repair it now. Output exactly one JSON object and no Markdown.\n"
-            f"Previous response:\n{bad_text}"
-        )
+        return f"JSON Error: {reason}. Output ONLY raw JSON."

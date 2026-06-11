@@ -22,15 +22,10 @@ class Tool:
         )
 
     def docs_compact(self) -> str:
-        props = self.schema.get("properties", {})
-        req = self.schema.get("required", [])
-        arg_strs = []
-        for name, info in props.items():
-            t = info.get("type", "any")
-            opt = "" if name in req else "?"
-            arg_strs.append(f"{name}{opt}: {t}")
-        args_part = ", ".join(arg_strs)
-        return f"- {self.name}({args_part}): {self.description}"
+        import json
+
+        schema_json = json.dumps(self.schema, separators=(",", ":"))
+        return f"- {self.name}: {self.description}\n  arguments schema: {schema_json}"
 
 
 @dataclass(frozen=True)
@@ -83,7 +78,7 @@ class ToolRegistry:
 
 
 def json_result(**payload: Any) -> str:
-    return json.dumps(payload, ensure_ascii=False)
+    return json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
 
 
 def validate_arguments(schema: dict[str, Any], arguments: dict[str, Any]) -> str | None:

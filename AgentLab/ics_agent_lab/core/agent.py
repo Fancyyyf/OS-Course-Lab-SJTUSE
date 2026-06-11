@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import json
 import concurrent.futures
+import json
+import threading
 from dataclasses import dataclass
 from pathlib import Path
-import threading
 from typing import Any
 
 from ..llm import LLMTransport, Message
@@ -19,11 +19,11 @@ from .trace import TraceRecorder
 class AgentConfig:
     max_steps: int = 100
     max_parse_repairs: int = 2
-    compact_after_messages: int = 20
-    compact_recent_messages: int = 4
-    compact_summary_limit: int = 12000
+    compact_after_messages: int = 10
+    compact_recent_messages: int = 3
+    compact_summary_limit: int = 4000
     tool_result_limit: int = 6000
-    compact_token_threshold: int = 4500
+    compact_token_threshold: int = 2000
     max_compaction_calls: int = 3
 
 
@@ -107,7 +107,7 @@ class Agent:
             {
                 "role": "system",
                 "content": self.protocol.build_system_prompt(
-                    self.tools.docs(compact=False), skill_docs, memory_docs
+                    self.tools.docs(compact=True), skill_docs, memory_docs
                 ),
             }
         ]
@@ -141,7 +141,9 @@ class Agent:
                     for i in range(1, len(messages) - kept_recent):
                         m = messages[i]
                         if m["role"] == "user" and len(m["content"]) > 2000:
-                            m["content"] = self._async_dump_long_text(m["content"], step)
+                            m["content"] = self._async_dump_long_text(
+                                m["content"], step
+                            )
                             modified = True
                     if modified:
                         estimated_tokens = self.estimate_messages_tokens(messages)
@@ -165,19 +167,26 @@ class Agent:
                             for m in to_summarize:
                                 role = m["role"]
                                 content = m["content"]
-                                if role == "system" and "Summary of previous" in content:
+                                if (
+                                    role == "system"
+                                    and "Summary of previous" in content
+                                ):
                                     transcript.append(content)
                                 else:
+                                    # Pre-truncate long content for summary query
+                                    if len(content) > 1000:
+                                        content = (
+                                            content[:500]
+                                            + "\n... [TRUNCATED FOR COMPACTION SUMMARY] ...\n"
+                                            + content[-300:]
+                                        )
                                     transcript.append(f"[{role.upper()}]:\n{content}")
                             to_summarize_str = "\n\n".join(transcript)
 
                             compaction_prompt = [
                                 {
                                     "role": "system",
-                                    "content": (
-                                        "Summarize the conversation history. "
-                                        "Retain: task goals, file paths, IDs, tool results (success/fail), and progress. Keep it brief."
-                                    ),
+                                    "content": "Summarize history in a very short, bulleted list (<150 words). Focus only on key variables/discovered facts/completed actions.",
                                 },
                                 {
                                     "role": "user",
@@ -291,7 +300,7 @@ class Agent:
                     messages.append(
                         {
                             "role": "user",
-                            "content": f"Tool '{parsed.name}' returned:\n{tool_result}",
+                            "content": f"Result of '{parsed.name}':\n{tool_result}",
                         }
                     )
 
