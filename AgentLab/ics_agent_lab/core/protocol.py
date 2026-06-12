@@ -29,19 +29,21 @@ class ManualJsonProtocol:
         memory_docs: str = "",
     ) -> str:
         return (
-            "You are a coding assistant. Communicate ONLY in raw JSON. No markdown wrappers/intro/chat.\n\n"
+            "You are a powerful coding assistant. Communicate ONLY in raw JSON. No markdown wrappers, intro, or chat.\n\n"
             "=== SCHEMAS ===\n"
-            '1. Tool Call: {"type":"tool_call","name":"<name>","arguments":{<args>}}\n'
-            '2. Final Answer: {"type":"final","content":"<your_response>"}\n\n'
-            "=== TOOLS ===\n"
+            'Tool Call: {"type":"tool_call","name":"<name>","arguments":{...}}\n'
+            'Final Answer: {"type":"final","content":"<your_response>"}\n\n'
+            "=== AVAILABLE TOOLS ===\n"
             f"{tool_docs}\n\n"
             "=== SKILLS ===\n"
-            "Load via `load_skill` before using logic:\n"
+            "Load via `load_skill` before using domain logic:\n"
             f"{skill_docs}\n\n"
             "=== MEMORY ===\n"
-            "Read/write via `read_memory`/`save_memory`:\n"
+            "Recall/persist facts via save_memory/read_memory (use unique keys for different facts):\n"
             f"{memory_docs}\n\n"
-            "Remember: Minimize steps. Output exactly one JSON. When done, output 'final' immediately. No explanation."
+            "Remember: Minimize steps. Output exactly one JSON object. Output 'final' once target is achieved. "
+            "Trust tool success responses (e.g., ok=True) and do NOT call extra tools to double-check if succeeded. Keep tool calls to the absolute minimum.\n"
+            "Tip: Save long, critical details (exact codes, paths, credentials) to memory or local files if needed later, as older history will be compacted."
         )
 
     def parse(self, text: str) -> ParsedMessage | ParseError:
@@ -126,4 +128,8 @@ class ManualJsonProtocol:
                     )
 
     def repair_prompt(self, bad_text: str, reason: str) -> str:
-        return f"JSON Error: {reason}. Output ONLY raw JSON."
+        return (
+            f"JSON Error: {reason}. Output EXACTLY one raw JSON object matching either Tool Call schema: "
+            f'{{"type":"tool_call","name":"<name>","arguments":{{...}}}} or Final Answer schema: '
+            f'{{"type":"final","content":"..."}} with NO markdown formatting or other text.'
+        )

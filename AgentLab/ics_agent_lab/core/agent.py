@@ -17,8 +17,8 @@ from .trace import TraceRecorder
 
 @dataclass
 class AgentConfig:
-    max_steps: int = 100
     max_parse_repairs: int = 2
+    max_steps: int = 100
     compact_after_messages: int = 10
     compact_recent_messages: int = 3
     compact_summary_limit: int = 4000
@@ -70,7 +70,7 @@ class Agent:
 
         self._io_executor.submit(write_task)
 
-        return f"[Content was {len(text)} chars and too long for memory. It has been fully saved to .agent_memory/long_outputs/step_{step}_{dump_id}.txt. Use 'bash' with 'grep/awk' or 'read_file' to search it if you need specific details later.]"
+        return f"[Too long ({len(text)} chars). Saved to .agent_memory/long_outputs/step_{step}_{dump_id}.txt. Use read_file/grep if needed.]"
 
     def save_trace(self, path: Path) -> None:
         self.trace.save_jsonl(path)
@@ -89,6 +89,9 @@ class Agent:
         if not isinstance(result, str):
             return result
         result = result.replace("\r\n", "\n").replace("\r", "\n")
+        result = result.replace("\t", "  ")
+        lines = [line.rstrip() for line in result.splitlines()]
+        result = "\n".join(lines)
         import re
 
         result = re.sub(r"\n\s*\n\s*\n+", "\n\n", result)
@@ -120,8 +123,8 @@ class Agent:
             }
         )
 
-        repair_attempts = 0
         step = 1
+        repair_attempts = 0
         llm_compaction_count = 0
         self._last_compact_step = -10
 
@@ -174,11 +177,11 @@ class Agent:
                                     transcript.append(content)
                                 else:
                                     # Pre-truncate long content for summary query
-                                    if len(content) > 1000:
+                                    if len(content) > 900:
                                         content = (
-                                            content[:500]
+                                            content[:450]
                                             + "\n... [TRUNCATED FOR COMPACTION SUMMARY] ...\n"
-                                            + content[-300:]
+                                            + content[-250:]
                                         )
                                     transcript.append(f"[{role.upper()}]:\n{content}")
                             to_summarize_str = "\n\n".join(transcript)
@@ -186,7 +189,7 @@ class Agent:
                             compaction_prompt = [
                                 {
                                     "role": "system",
-                                    "content": "Summarize history in a very short, bulleted list (<150 words). Focus only on key variables/discovered facts/completed actions.",
+                                    "content": "Summarize history under 120 words. Preserve all exact details like names, keys, paths, credentials, and specific terms (e.g. 'path traversal', 'password reset') if present. Do not generalize them.",
                                 },
                                 {
                                     "role": "user",

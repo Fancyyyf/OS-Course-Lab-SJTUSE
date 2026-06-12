@@ -24,8 +24,21 @@ class Tool:
     def docs_compact(self) -> str:
         import json
 
-        schema_json = json.dumps(self.schema, separators=(",", ":"))
-        return f"- {self.name}: {self.description}\n  arguments schema: {schema_json}"
+        props = self.schema.get("properties", {})
+        required = self.schema.get("required", [])
+        arg_parts = []
+        for name, prop in props.items():
+            t = prop.get("type", "any")
+            enum = prop.get("enum")
+            enum_str = (
+                f" (enum:{json.dumps(enum, separators=(',', ':'))})" if enum else ""
+            )
+            req = "required" if name in required else "optional"
+            desc = prop.get("description", "")
+            desc_str = f" - {desc}" if desc else ""
+            arg_parts.append(f"{name}:{t}{enum_str}({req}){desc_str}")
+        args_str = ", ".join(arg_parts)
+        return f"- {self.name}: {self.description}. Args: {{{args_str}}}"
 
 
 @dataclass(frozen=True)
@@ -94,8 +107,16 @@ def validate_arguments(schema: dict[str, Any], arguments: dict[str, Any]) -> str
         if expected is None:
             return f"Unexpected argument `{key}`."
         expected_type = expected.get("type")
-        if expected_type == "string" and not isinstance(value, str):
+        if (
+            expected_type == "string"
+            and value is not None
+            and not isinstance(value, str)
+        ):
             return f"Argument `{key}` must be a string."
-        if expected_type == "integer" and not isinstance(value, int):
+        if (
+            expected_type == "integer"
+            and value is not None
+            and not isinstance(value, int)
+        ):
             return f"Argument `{key}` must be an integer."
     return None

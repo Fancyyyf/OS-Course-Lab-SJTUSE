@@ -55,7 +55,7 @@ class OpenRouterChatTransport(LLMTransport):
                 f"Missing {self.api_key_env}. Put it in .env or export it."
             )
 
-        client = OpenAI(api_key=api_key, base_url=self.base_url)
+        client = OpenAI(api_key=api_key, base_url=self.base_url, timeout=30.0)
         request = {
             "model": self.model,
             "messages": messages,

@@ -67,6 +67,7 @@ def run_scenario(
 
     answer = run_agent_scenario(runtime.agent, scenario)
     runtime.agent.save_trace(Path("traces/latest.jsonl"))
+    runtime.agent.save_trace(workspace / "scenario_trace.jsonl")
     trace_summary = summarize_trace(runtime.agent.trace.events)
     failures = check_expectations(
         scenario,
